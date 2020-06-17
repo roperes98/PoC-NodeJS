@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
-const { uuid } = require("uuidv4");
+const { uuid, isUuid } = require("uuidv4");
 
 const app = express();
 
@@ -10,28 +10,32 @@ app.use(cors());
 
 const repositories = [];
 
+function projectValidId(request, response, next) {
+  const { id } = request.params;
+
+  if (!isUuid(id))
+    return response.status(400).json({ error: "Invalid project id" });
+
+  return next();
+}
+app.use("/repositories/:id", projectValidId)
+
 app.get("/repositories", (request, response) => {
-  const { title } = request.query;
-
-  const results = title
-    ? repositories.filter(repository => repository.title.includes(title))
-    : repositories;
-
-  return response.json(results);
+  response.json(repositories);
 });
 
 app.post("/repositories", (request, response) => {
-  const { title, techs } = request.body;
+  const { title, url, techs } = request.body;
 
-  const base_url = "http://github.com/";
+  const repository = {
+    id: uuid(),
+    title,
+    url,
+    techs,
+    likes: 0,
+  };
 
-  const new_url = base_url + Math.floor(Math.random() * 25600);
-
-  const url = new_url;
-
-  const repository = { id: uuid(), title, techs, url, likes: 0 };
-
-  repositories.push(repository)
+  repositories.push(repository);
 
   console.log(`⚡️ Project ${repository.title} created ⚡️`);
 
